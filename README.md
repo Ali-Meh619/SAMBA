@@ -60,7 +60,8 @@ pip install -r requirements.txt
 2. **📁 Create Dataset folder and add your CSV files:**
    ```bash
    mkdir Dataset
-   # Copy your CSV files to the Dataset folder:
+   # Keep the SAMBA feature builder and copy your CSV files to the Dataset folder:
+   # - samba_feature_builder.py
    # - combined_dataframe_IXIC.csv
    # - combined_dataframe_NYSE.csv  
    # - combined_dataframe_DJI.csv
@@ -98,20 +99,52 @@ config.batch_size = 64  # Increase batch size
 
 > **⚠️ Important**: Create a `Dataset` folder and place your CSV files in it.
 
-The model expects CSV data with the following format:
+The model expects SAMBA combined CSV data with the following format:
 - 📅 **Date column** as index
 - 🏷️ **Name column** (will be removed during preprocessing)
 - 💰 **Price column** for target values
-- 📈 **Additional feature columns** (technical indicators, market data, etc.)
+- 📈 **82 feature columns** containing target-market technical features and shared market variables
 
 **Example:**
 ```csv
-Date,Name,Price,Volume,RSI,MACD,...
-2023-01-01,IXIC,100.0,1000000,0.5,0.3,...
-2023-01-02,IXIC,101.0,1200000,0.6,0.4,...
+Date,Price,Vol.,weekday,mom,mom1,...,DE6
+2010-01-04,2308.42,-0.14709,0,-0.000126,...,1.23
+2010-01-05,2308.71,0.034934,1,0.003311,...,1.12
 ```
 
 > **💡 Note**: The `num_nodes` parameter is automatically determined from the input data shape (number of features), so you don't need to specify it manually.
+
+### SAMBA Feature Builder
+
+`Dataset/samba_feature_builder.py` builds SAMBA-compatible combined feature files when the required raw source series are available. It computes the target-market technical features, merges shared external variables, and derives the SAMBA term-spread and default-spread features.
+
+Use `legacy` mode to match the published SAMBA dataset convention:
+
+```bash
+python Dataset/samba_feature_builder.py \
+  --target-csv raw_ixic.csv \
+  --target-name IXIC \
+  --external-csv raw_external_features.csv \
+  --external-mode raw \
+  --external-alignment reverse-position \
+  --mode legacy \
+  --output Dataset/combined_dataframe_IXIC.csv
+```
+
+Use `causal` mode for chronological feature engineering on new datasets:
+
+```bash
+python Dataset/samba_feature_builder.py \
+  --target-csv raw_ixic.csv \
+  --target-name IXIC \
+  --external-csv raw_external_features.csv \
+  --external-mode raw \
+  --external-alignment date \
+  --mode causal \
+  --output Dataset/combined_dataframe_IXIC.csv
+```
+
+Exact reproduction of the published combined CSVs requires the same raw source series, vendor calendars, missing values, historical snapshots, and rounding used to create those files.
 
 ### 📈 Available Datasets
 
@@ -120,6 +153,7 @@ This repository is configured to work with three real-world datasets from the US
 **📁 Folder Structure:**
 ```
 Dataset/
+├── samba_feature_builder.py       # SAMBA feature construction utility
 ├── combined_dataframe_IXIC.csv    # 📊 NASDAQ Composite Index
 ├── combined_dataframe_NYSE.csv    # 🏛️ New York Stock Exchange
 └── combined_dataframe_DJI.csv     # 📈 Dow Jones Industrial Average
@@ -187,7 +221,8 @@ The model outputs results to:
 ## 📁 File Structure
 
 ```
-├── 📂 Dataset/                # Put your CSV files here
+├── 📂 Dataset/                # SAMBA datasets and feature builder
+│   ├── samba_feature_builder.py
 │   ├── 📊 combined_dataframe_IXIC.csv
 │   ├── 🏛️ combined_dataframe_NYSE.csv
 │   └── 📈 combined_dataframe_DJI.csv
